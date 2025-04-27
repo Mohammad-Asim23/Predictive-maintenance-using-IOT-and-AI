@@ -1,0 +1,9 @@
+<div class="empty-state {% if class %}{{ class }}{% endif %}">
+    <i class="fas {{ icon|default('fa-info-circle') }}"></i>
+    <p>{{ message }}</p>
+    {% if show_refresh %}
+    <button class="refresh-btn" onclick="{{ refresh_action }}">
+        <i class="fas fa-sync-alt"></i> {{ refresh_text|default('Refresh') }}
+    </button>
+    {% endif %}
+</div>

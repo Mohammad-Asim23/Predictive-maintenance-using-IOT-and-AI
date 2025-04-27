@@ -1,0 +1,42 @@
+{
+  "read_demo_data": false,
+  "csv_file_path": "water_plant_sensor_data.csv",
+  "mqtt_broker": "broker.emqx.io",
+  "mqtt_port": 1883,
+  "mqtt_topic": "esp8266/sensorData",
+  "update_interval": 2,
+  "gauges": [
+    {
+      "type": "Gauge",
+      "title": "Distance (cm)",
+      "value_key": "Ultrasonic.distance_cm",
+      "min_val": 0,
+      "max_val": 400,
+      "color": "blue"
+    },
+    {
+      "type": "Gauge",
+      "title": "Flow Rate (L/min)",
+      "value_key": "FlowSensor.flowRate_Lmin",
+      "min_val": 0,
+      "max_val": 100,
+      "color": "green"
+    },
+    {
+      "type": "Gauge",
+      "title": "Temperature (C)",
+      "value_key": "DS18B20.temperature_C",
+      "min_val": 0,
+      "max_val": 125,
+      "color": "red"
+    },
+    {
+      "type": "Gauge",
+      "title": "Humidity (%)",
+      "value_key": "DHT11.humidity_percent",
+      "min_val": 0,
+      "max_val": 100,
+      "color": "purple"
+    }
+  ]
+}

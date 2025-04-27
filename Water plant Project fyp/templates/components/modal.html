@@ -1,0 +1,7 @@
+<div id="{{ modal_id }}" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="document.getElementById('{{ modal_id }}').style.display='none'">&times;</span>
+    <h2>{{ title }}</h2>
+    {{ content|safe }}
+  </div>
+</div>

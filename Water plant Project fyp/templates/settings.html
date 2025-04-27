@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Water Plant System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* App container styles */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Dark theme colors */
+        :root {
+            --dark-bg: #1a1a2e;
+            --dark-secondary: #16213e;
+            --dark-accent: #0f3460;
+            --text-primary: #e6e6e6;
+            --text-secondary: #b8b8b8;
+            --accent-color: #4361ee;
+            --border-color: #2a2a4a;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+        }
+
+        .main-content h1 {
+            font-size: 28px;
+            margin-bottom: 25px;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+
+        .settings-container {
+            background-color: var(--dark-secondary);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid var(--border-color);
+        }
+
+        .settings-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background-color: rgba(15, 52, 96, 0.3);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .settings-section h2 {
+            color: var(--text-primary);
+            font-size: 22px;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+        }
+
+        .notification-options {
+            margin-top: 25px;
+        }
+
+        .notification-options h3 {
+            color: var(--text-primary);
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .notification-option {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-color);
+        }
+
+        .notification-option label {
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .btn-primary, .save-btn {
+            background-color: var(--accent-color);
+            color: var(--text-primary);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover, .save-btn:hover {
+            background-color: #3a56d4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+
+        /* Flash message styles update */
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .flash-message {
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .flash-message.error {
+            background-color: rgba(244, 67, 54, 0.15);
+            border: 1px solid #f44336;
+            color: #ff6b6b;
+        }
+
+        .flash-message.success {
+            background-color: rgba(76, 175, 80, 0.15);
+            border: 1px solid #4CAF50;
+            color: #69db7c;
+        }
+
+        .flash-message.info {
+            background-color: rgba(33, 150, 243, 0.15);
+            border: 1px solid #2196F3;
+            color: #74c0fc;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .flash-message.fade-out {
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        /* Add responsive styles for settings page */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 15px;
+                margin-left: 0 !important;
+                padding-top: 70px !important; /* Space for mobile header */
+                position: relative;
+                z-index: 50; /* Ensure content is above sidebar background but below open sidebar */
+                width: 100%;
+                box-sizing: border-box;
+            }
+            
+            .settings-container {
+                padding: 15px;
+                width: 100%;
+                box-sizing: border-box;
+                position: relative;
+                z-index: 50; /* Match main-content z-index */
+            }
+            
+            /* Ensure form elements are above sidebar background */
+            .form-group input, 
+            .btn-primary, 
+            .save-btn,
+            .notification-option input[type="checkbox"] {
+                position: relative;
+                z-index: 51;
+            }
+            
+            /* When sidebar is open, adjust main content */
+            .sidebar.open + .main-content,
+            .sidebar.open ~ .main-content {
+                opacity: 0.3; /* Dim the content when sidebar is open */
+                pointer-events: none; /* Prevent interaction with content when sidebar is open */
+            }
+        }
+        
+        /* Medium screens - transition zone fix */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .main-content {
+                margin-left: var(--sidebar-width);
+                z-index: 10;
+                position: relative;
+            }
+            
+            .settings-container {
+                position: relative;
+                z-index: 11;
+            }
+            
+            .form-group input, 
+            .btn-primary, 
+            .save-btn,
+            .notification-option input[type="checkbox"] {
+                position: relative;
+                z-index: 12;
+            }
+        }   
+        /* Extra small screens */
+        @media (max-width: 480px) {
+            .main-content h1 {
+                font-size: 22px;
+                text-align: center;
+                display: block;
+                margin-bottom: 15px;
+            }
+            
+            .settings-section {
+                padding: 12px;
+            }
+            
+            .form-group label {
+                display: block;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Include the flash messages component -->
+    {% include 'components/flash_messages.html' %}
+
+    <div class="app-container">
+        <!-- Include the sidebar component -->
+        {% with active_page='settings' %}
+        {% include 'components/sidebar.html' %}
+        {% endwith %}
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <h1>Settings</h1>
+            
+            <div class="settings-container">
+                <!-- User Profile Section -->
+                <div class="settings-section">
+                    <h2>User Profile</h2>
+                    <form action="{{ url_for('auth.profile_update') }}" method="POST">
+                        <div class="form-group">
+                            <label for="name">Name</label>
+                            <input type="text" id="name" name="name" value="{{ session['user_name'] }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" value="{{ session['user_email'] }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="current_password">Current Password (required for password change)</label>
+                            <input type="password" id="current_password" name="current_password">
+                        </div>
+                        <div class="form-group">
+                            <label for="new_password">New Password (optional)</label>
+                            <input type="password" id="new_password" name="new_password">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                    </form>
+                </div>
+
+                <!-- Notification Settings Section -->
+                <form action="{{ url_for('settings.save_settings') }}" method="POST">
+                    <div class="settings-section">
+                        <h2>Notification Settings</h2>
+                        <div class="form-group">
+                            <label for="notification_email">Notification Email</label>
+                            <input type="email" id="notification_email" name="notification_email" value="{{ config.get('notification_email', '') }}">
+                        </div>
+                        
+                        <div class="notification-options">
+                            <h3>Notification Preferences</h3>
+                            <div class="notification-option">
+                                <input type="checkbox" id="notify_failures" name="notify_failures" {% if config.get('notify_failures', True) %}checked{% endif %}>
+                                <label for="notify_failures">Notify on failure predictions</label>
+                            </div>
+                            <div class="notification-option">
+                                <input type="checkbox" id="notify_warnings" name="notify_warnings" {% if config.get('notify_warnings', True) %}checked{% endif %}>
+                                <label for="notify_warnings">Notify on warning thresholds</label>
+                            </div>
+                           
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="save-btn">Save Settings</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- No need for the flash message script here anymore as it's in the component -->
+</body>
+<script>
+    // Handle screen transitions and z-index issues
+    function adjustZIndexes() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.querySelector('.main-content');
+        const settingsContainer = document.querySelector('.settings-container');
+        const formInputs = document.querySelectorAll('.form-group input, .btn-primary, .save-btn, .notification-option input[type="checkbox"]');
+        
+        // Apply z-index for all screen sizes to ensure content is always visible
+        sidebar.style.zIndex = '1000';
+        mainContent.style.zIndex = '50';
+        settingsContainer.style.zIndex = '60';
+        
+        // Apply higher z-index to form elements
+        formInputs.forEach(input => {
+            input.style.position = 'relative';
+            input.style.zIndex = '70';
+        });
+        
+        // Apply specific styles based on screen width
+        if (window.innerWidth <= 768) {
+            // Mobile styles
+            mainContent.style.marginLeft = '0';
+            if (sidebar.classList.contains('open')) {
+                mainContent.style.opacity = '0.3';
+                mainContent.style.pointerEvents = 'none';
+            } else {
+                mainContent.style.opacity = '1';
+                mainContent.style.pointerEvents = 'auto';
+            }
+        } else {
+            // Desktop styles
+            mainContent.style.marginLeft = 'var(--sidebar-width)';
+            mainContent.style.opacity = '1';
+            mainContent.style.pointerEvents = 'auto';
+        }
+    }
+    
+    // Run on page load
+    document.addEventListener('DOMContentLoaded', adjustZIndexes);
+    
+    // Run on window resize
+    window.addEventListener('resize', adjustZIndexes);
+    
+    // Run when sidebar toggle is clicked
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                // Small delay to allow sidebar class to change
+                setTimeout(adjustZIndexes, 10);
+            });
+        }
+        
+        // Also handle mobile overlay clicks
+        const mobileOverlay = document.getElementById('mobile-overlay');
+        if (mobileOverlay) {
+            mobileOverlay.addEventListener('click', function() {
+                setTimeout(adjustZIndexes, 10);
+            });
+        }
+    });
+</script>
+</html>

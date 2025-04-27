@@ -1,0 +1,219 @@
+/* General Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap");
+
+body {
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Diagonal split layout */
+.page-split {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-areas: "content";
+}
+
+.diagonal-box {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(0 0, 80% 0, 0 50%);
+  background: #fff;
+  z-index: 2;
+}
+
+.title-section {
+  position: absolute;
+  top: 8%;
+  left: 5%;
+  z-index: 3;
+  opacity: 0;
+  animation: fadeIn 1s ease-out forwards;
+  width: 50%;
+}
+
+.title-text {
+  font-family: "Orbitron", sans-serif;
+  font-size: 3.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: linear-gradient(45deg, #0066ff, #32ccf3);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  line-height: 1.2;
+  letter-spacing: 2px;
+}
+
+.auth-section {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100vh;
+  background: url("background.webp") no-repeat center center fixed;
+  background-size: cover;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-right: 10%;
+}
+
+.auth-section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.auth-container {
+  position: relative;
+  background: rgba(40, 40, 40, 0.9);
+  padding: 40px 50px;
+  border-radius: 15px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  width: 100%;
+  max-width: 450px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeIn 1s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Form styles */
+h2 {
+  margin-bottom: 30px;
+  font-size: 2.5rem;
+  color: #0066ff;
+  font-family: "Orbitron", sans-serif;
+}
+
+label {
+  display: block;
+  margin: 15px 0 5px;
+  font-size: 1rem;
+  text-align: left;
+  color: #fff;
+}
+
+input {
+  width: 100%;
+  padding: 15px;
+  margin-bottom: 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+button {
+  background-color: #0066ff;
+  color: #fff;
+  padding: 15px 20px;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.3s ease;
+  margin-top: 10px;
+}
+
+button:hover {
+  background-color: #0052cc;
+}
+
+p {
+  font-size: 1rem;
+  margin-top: 20px;
+  color: #fff;
+}
+
+a {
+  color: #0066ff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+
+/* Flash message styles */
+.flash-messages {
+  position: fixed;
+  top: 20px;
+  right: 20px;  /* Position on right side */
+  z-index: 1000;
+  max-width: 300px;
+}
+
+.flash-message {
+  padding: 12px 15px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s ease-out;
+  text-align: left;
+}
+
+.flash-message.error {
+  background-color: #f44336;
+  color: white;
+}
+
+.flash-message.success {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.flash-message.info {
+  background-color: #2196F3;
+  color: white;
+}
+
+.flash-message.fade-out {
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

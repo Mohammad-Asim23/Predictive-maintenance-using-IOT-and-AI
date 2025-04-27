@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>{{ action }} - Predictive Maintenance</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='auth-style.css') }}"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Inline flash message styles to ensure they're applied */
+      .flash-messages {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999; /* Increased z-index to ensure visibility */
+        max-width: 300px;
+        pointer-events: none; /* Allow clicking through messages */
+      }
+      
+      .flash-message {
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.3s ease-out;
+        font-weight: bold;
+      }
+      
+      .flash-message.error {
+        background-color: #f44336;
+        color: white;
+        border-left: 4px solid #b71c1c;
+      }
+      
+      .flash-message.success {
+        background-color: #4CAF50;
+        color: white;
+        border-left: 4px solid #1b5e20;
+      }
+      
+      .flash-message.info {
+        background-color: #2196F3;
+        color: white;
+        border-left: 4px solid #0d47a1;
+      }
+      
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      
+      .flash-message.fade-out {
+        opacity: 0;
+        transition: opacity 0.5s ease-out;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Flash messages section - moved outside the page-split div -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash-message {{ category }}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    
+    <div class="page-split">
+      <div class="diagonal-box"></div>
+      <div class="title-section">
+        <h1 class="title-text">Predictive Maintenance System</h1>
+      </div>
+
+      <div class="auth-section">
+        <div class="auth-container">
+          <h2>{{ action }}</h2>
+          {% if action == "Login" %}
+          <form action="{{ url_for('auth.login') }}" method="POST">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required />
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required />
+
+            <button type="submit">Login</button>
+            <p>
+              Don't have an account?
+              <a href="{{ url_for('auth.signup') }}">Sign Up</a>
+            </p>
+          </form>
+          {% elif action == "Sign Up" %}
+          <form action="{{ url_for('auth.signup') }}" method="POST">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name" required />
+
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required />
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required />
+
+            <button type="submit">Sign Up</button>
+            <p>
+              Already have an account?
+              <a href="{{ url_for('auth.login') }}">Login</a>
+            </p>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const flashMessages = document.querySelectorAll(".flash-message");
+        console.log("Flash messages found:", flashMessages.length);
+
+        flashMessages.forEach(function (message) {
+          // Start fade out after 3 seconds
+          setTimeout(() => {
+            message.classList.add("fade-out");
+          }, 3000);
+
+          // Remove element after fade out animation (after 3.5 seconds)
+          setTimeout(() => {
+            message.remove();
+          }, 3500);
+        });
+      });
+    </script>
+  </body>
+</html>

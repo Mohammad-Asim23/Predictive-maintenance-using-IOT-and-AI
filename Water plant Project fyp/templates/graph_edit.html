@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Edit Graph Configuration</h1>
+    </header>
+
+    <section id="graph-edit-section">
+        <form action="{{ url_for('dashboard.graph_edit') }}" method="POST">
+            <label for="id">Graph ID:</label>
+            <input type="text" id="id" name="id" required><br>
+
+            <label for="title">Graph Title:</label>
+            <input type="text" id="title" name="title" required><br>
+
+            <label for="type">Graph Type:</label>
+            <select id="type" name="type" required>
+                <option value="line">Line</option>
+                <option value="bar">Bar</option>
+                <option value="scatter">Scatter</option>
+            </select><br>
+
+            <label for="min_val">Minimum Value:</label>
+            <input type="number" id="min_val" name="min_val" required><br>
+
+            <label for="max_val">Maximum Value:</label>
+            <input type="number" id="max_val" name="max_val" required><br>
+
+            <label for="color">Color:</label>
+            <input type="color" id="color" name="color" required><br>
+
+            <button type="submit">Save Graph</button>
+        </form>
+    </section>
+</body>
+</html>

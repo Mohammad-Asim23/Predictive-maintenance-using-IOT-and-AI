@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor & Prediction History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.0.0"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        :root {
+      --dark-bg: #1a1a2e;
+      --dark-secondary: #16213e;
+      --dark-accent: #0f3460;
+      --text-primary: #e6e6e6;
+      --text-secondary: #b8b8b8;
+      --accent-color: #4361ee;
+      --danger-color: #e63946;
+      --warning-color: #ff9f1c;
+      --success-color: #2a9d8f;
+      --card-bg: #242444;
+      --border-color: #2a2a4a;
+    }
+    body {
+      background-color: var(--dark-bg);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex; 
+    }
+    
+    .main-content {
+      flex: 1; 
+      padding: 10px;
+      margin-left: 25px;
+      width: calc(100% - 250px); 
+      overflow-y: auto;
+    }
+    .main-content h1{
+        margin-left: 12px;
+    }
+
+    .history-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .history-card {
+            background-color: var(--dark-accent);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .history-title {
+            margin-top: 0;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        
+        .chart-container {
+            height: 400px;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background-color: var(--dark-bg);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        th {
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+        }
+        
+        tr:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .asset-selector {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .asset-btn {
+        background-color: var(--dark-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+    
+    /* Responsive styles for small screens */
+    @media (max-width: 768px) {
+        .main-content {
+            padding: 10px;
+            margin-left: 0;
+            width: 100%;
+        }
+        
+        .history-container {
+            padding: 10px;
+        }
+        
+        .history-card {
+            padding: 15px;
+        }
+        
+        /* Make asset selector buttons more touch-friendly */
+        .asset-selector {
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .asset-btn {
+            padding: 10px;
+            font-size: 0.9rem;
+            flex: 1 1 calc(50% - 8px);
+            text-align: center;
+            min-width: 0;
+        }
+        
+        /* Improve table responsiveness */
+        .prediction-table-container {
+            overflow-x: auto;
+        }
+        
+        #prediction-table {
+            min-width: 500px; /* Ensure table has minimum width for scrolling */
+        }
+        
+        /* Adjust chart height for better mobile viewing */
+        .chart-container {
+            height: 300px;
+        }
+        
+        /* Make stats cards stack better on small screens */
+        .stats-container {
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        }
+        
+        .stat-card {
+            padding: 10px;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+        }
+    }
+    
+    /* Extra small screens */
+    @media (max-width: 480px) {
+        .asset-btn {
+            flex: 1 1 100%;
+            margin-bottom: 5px;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            text-align: center;
+        }
+        
+        .history-title {
+            font-size: 1.2rem;
+        }
+        
+        /* Further optimize table for very small screens */
+        #prediction-table th, 
+        #prediction-table td {
+            padding: 8px;
+            font-size: 0.9rem;
+        }
+    }
+        .asset-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        
+        .loading-component {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            color: var(--text-secondary);
+        }
+        
+        .loading-component i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+        
+        .empty-component {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .empty-component i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+        }
+        
+        .chart-loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(26, 26, 46, 0.7);
+            z-index: 10;
+            border-radius: 8px;
+        }
+        
+        .loading-row td {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .refresh-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .refresh-btn:hover {
+            background-color: #3a56d4;
+        }
+        
+        .data-summary {
+            background-color: var(--dark-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .data-summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .data-summary-item:last-child {
+            border-bottom: none;
+        }
+        
+        .data-summary-label {
+            color: var(--text-secondary);
+        }
+        
+        .data-summary-value {
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+        
+        .prediction-table-container {
+            margin-top: 20px;
+            background-color: var(--dark-bg);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .prediction-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .prediction-status.warning {
+            background-color: var(--warning-color);
+            color: var(--dark-bg);
+        }
+        
+        .prediction-status.danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .prediction-status.normal {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .trend-arrow {
+            margin-left: 5px;
+        }
+        
+        .trend-up {
+            color: var(--danger-color);
+        }
+        
+        .trend-down {
+            color: var(--success-color);
+        }
+        
+        .trend-stable {
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    {% if 'user_id' in session %}
+    {% with active_page='history' %}
+    {% include 'components/sidebar.html' %}
+    {% endwith %}
+    
+    <div class="main-content">
+        <h1>Sensor & Prediction History</h1>
+        
+        <div class="history-container">
+            <!-- Failure Statistics Card - Keeping this as is -->
+            <div class="history-card">
+                <h2 class="history-title">Failure Statistics</h2>
+                <div class="stats-container" id="failure-stats">
+                    <!-- Loading component -->
+                    <div class="loading-component">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading statistics...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Simplified Sensor Data History Card -->
+            <div class="history-card">
+                <h2 class="history-title">Sensor Data History</h2>
+                <div class="asset-selector">
+                    <button class="asset-btn active" data-asset="A1-temp">Air Temperature</button>
+                    <button class="asset-btn" data-asset="A1-humidity">Air Humidity</button>
+                    <button class="asset-btn" data-asset="A2">Water Temperature</button>
+                    <button class="asset-btn" data-asset="A3">Ultrasonic Distance</button>
+                    <button class="asset-btn" data-asset="A4">Water Flow</button>
+                </div>
+                
+                <!-- Simple chart container -->
+                <div class="chart-container">
+                    <div id="sensor-chart"></div>
+                    <div class="chart-loading-overlay" id="sensor-chart-loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading chart data...</p>
+                    </div>
+                </div>
+            </div>
+            
+            
+            <!-- Simplified Prediction History Card - Just a table -->
+            <div class="history-card">
+                <h2 class="history-title">Prediction History</h2>
+                <div class="asset-selector">
+                    <button class="asset-btn active" data-asset="A1">Air Temp & Humidity</button>
+                    <button class="asset-btn" data-asset="A2">Water Temperature</button>
+                    <button class="asset-btn" data-asset="A3">Ultrasonic Distance</button>
+                    <button class="asset-btn" data-asset="A4">Water Flow</button>
+                </div>
+                
+                <!-- Enhanced prediction table -->
+                <div class="prediction-table-container">
+                    <table id="prediction-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Asset</th>
+                                <th>Probability</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Loading row -->
+                            <tr class="loading-row">
+                                <td colspan="4"><i class="fas fa-spinner fa-spin"></i> Loading prediction data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="login-redirect">
+        <h2>Please log in to view this page</h2>
+        <a href="{{ url_for('auth.login') }}" class="btn">Go to Login</a>
+    </div>
+    {% endif %}
+    
+    
+   <!-- Completing the updatePredictionTable function that was cut off -->
+<script>
+    // Add this at the beginning of your script
+    
+    // Current selected asset
+    let currentAsset = 'A1';
+    let sensorChart = null;
+    let isLoading = {
+        stats: true,
+        sensor: true,
+        prediction: true
+    };
+    
+    // Data caching
+    let cachedData = {
+        sensor: {},
+        prediction: {}
+    };
+    
+    
+    // Add debugging for fetch responses
+    function debugFetchResponse(endpoint, data) {
+        console.log(`Data from ${endpoint}:`, data);
+        console.log(`Data length: ${data ? data.length : 0}`);
+        if (data && data.length > 0) {
+            console.log('Sample item:', data[0]);
+        } else {
+            console.log('No data returned or empty array');
+        }
+    }
+    
+    function cleanupCharts() {
+    if (window.sensorChart) {
+        document.getElementById('sensor-chart').innerHTML = '';
+    }
+    
+    if (window.predictionChart) {
+        window.predictionChart.destroy();
+        window.predictionChart = null;
+    }
+}
+    // Create empty state component
+    function createEmptyComponent(message, icon = 'fa-info-circle', showRefresh = true, refreshFn = null) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'empty-component';
+        
+        emptyDiv.innerHTML = `
+            <i class="fas ${icon}"></i>
+            <p>${message}</p>
+            ${showRefresh ? `<button class="refresh-btn" id="refresh-btn"><i class="fas fa-sync-alt"></i> Refresh Data</button>` : ''}
+        `;
+        
+        if (showRefresh && refreshFn) {
+            setTimeout(() => {
+                const refreshBtn = emptyDiv.querySelector('#refresh-btn');
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', refreshFn);
+                }
+            }, 0);
+        }
+        
+        return emptyDiv;
+    }
+    
+    
+    // Initialize the page
+    // Add this function to your script
+
+// Modify the DOMContentLoaded event handler to include cleanup
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up asset selector buttons
+    document.querySelectorAll('.asset-selector').forEach(selector => {
+        selector.querySelectorAll('.asset-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const asset = this.getAttribute('data-asset');
+                
+                // Cleanup charts before loading new data
+                cleanupCharts();
+                
+                // Update active button in the same selector
+                selector.querySelectorAll('.asset-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                // Find which chart this selector controls
+                const parent = selector.closest('.history-card');
+                const title = parent.querySelector('.history-title').textContent;
+                
+                // Update appropriate data based on title
+                if (title.includes('Sensor Data')) {
+                    loadSensorData(asset);
+                } else if (title.includes('Prediction')) {
+                    // For prediction history, we still need to map A1-temp and A1-humidity back to A1
+                    if (asset === 'A1-temp' || asset === 'A1-humidity') {
+                        loadPredictionData('A1');
+                    } else {
+                        loadPredictionData(asset);
+                    }
+                }
+            });
+        });
+    });
+    
+    // Load initial data
+    loadFailureStats();
+    loadSensorData('A1-temp'); // Start with temperature by default
+    loadPredictionData('A1');
+    
+    // Refresh data every 30 seconds
+    setInterval(() => {
+        cleanupCharts(); // Add cleanup before refreshing
+        loadFailureStats();
+        
+        // Get the currently selected sensor asset
+        const activeSensorBtn = document.querySelector('.history-card:nth-child(2) .asset-btn.active');
+        const sensorAsset = activeSensorBtn ? activeSensorBtn.getAttribute('data-asset') : 'A1-temp';
+        loadSensorData(sensorAsset);
+        
+        // Get the currently selected prediction asset
+        const activePredictionBtn = document.querySelector('.history-card:nth-child(3) .asset-btn.active');
+        const predictionAsset = activePredictionBtn ? activePredictionBtn.getAttribute('data-asset') : 'A1';
+        
+        // Map A1-temp and A1-humidity to A1 for predictions
+        if (predictionAsset === 'A1-temp' || predictionAsset === 'A1-humidity') {
+            loadPredictionData('A1');
+        } else {
+            loadPredictionData(predictionAsset);
+        }
+    }, 30000);
+});
+    
+    
+    function loadFailureStats() {
+        isLoading.stats = true;
+        const statsContainer = document.getElementById('failure-stats');
+        
+        // Show loading state
+        statsContainer.innerHTML = '';
+        const loadingComponent = document.createElement('div');
+        loadingComponent.className = 'loading-component';
+        loadingComponent.innerHTML = '<i class="fas fa-spinner fa-spin"></i><p>Loading statistics...</p>';
+        statsContainer.appendChild(loadingComponent);
+        
+        fetch('/api/stats/failures')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                isLoading.stats = false;
+                debugFetchResponse('failure stats API', data);
+                statsContainer.innerHTML = '';
+                
+                if (!data || data.length === 0) {
+                    statsContainer.appendChild(
+                        createEmptyComponent(
+                            'No failure data available yet. Data will appear here when failures are detected.',
+                            'fa-exclamation-circle',
+                            true,
+                            loadFailureStats
+                        )
+                    );
+                    return;
+                }
+                
+                // Create a stat card for each asset
+                data.forEach(stat => {
+                    const assetNames = {
+                        'A1': 'Air Temp & Humidity',
+                        'A2': 'Water Temperature',
+                        'A3': 'Ultrasonic Distance',
+                        'A4': 'Water Flow'
+                    };
+                    
+                    const statCard = document.createElement('div');
+                    statCard.className = 'stat-card';
+                    statCard.innerHTML = `
+                        <div class="stat-value">${stat.count}</div>
+                        <div class="stat-label">${assetNames[stat.asset_id] || stat.asset_id} Failures</div>
+                    `;
+                    statsContainer.appendChild(statCard);
+                });
+            })
+            .catch(error => {
+                isLoading.stats = false;
+                console.error('Error loading failure stats:', error);
+                statsContainer.innerHTML = '';
+                statsContainer.appendChild(
+                    createEmptyComponent(
+                        `Error loading failure statistics: ${error.message}. Please try again.`,
+                        'fa-exclamation-triangle',
+                        true,
+                        loadFailureStats
+                    )
+                );
+            });
+    }
+    
+    function loadSensorData(assetId) {
+    currentAsset = assetId;
+    isLoading.sensor = true;
+    
+    // Show loading state for chart
+    const chartContainer = document.querySelector('#sensor-chart').closest('.chart-container');
+    let loadingOverlay = chartContainer.querySelector('.chart-loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
+    }
+    
+    // Check cache first
+    if (cachedData.sensor[assetId] && cachedData.sensor[assetId].timestamp > Date.now() - 60000) {
+        updateSensorChart(cachedData.sensor[assetId].data);
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+        isLoading.sensor = false;
+        return;
+    }
+    
+    // Handle the new asset IDs for temperature and humidity
+    if (assetId === 'A1-temp') {
+        // Fetch only temperature data
+        fetch(`/api/history/sensor/A1?type=temperature&limit=50`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                isLoading.sensor = false;
+                debugFetchResponse('sensor API (temperature)', data);
+                
+                // Cache the data
+                cachedData.sensor[assetId] = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+                
+                updateSensorChart(data, null, 'Temperature', '#4361ee');
+                
+                // Hide loading overlay
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                handleSensorDataError(error, assetId, loadingOverlay);
+            });
+    } 
+    else if (assetId === 'A1-humidity') {
+        // Fetch only humidity data
+        fetch(`/api/history/sensor/A1?type=humidity&limit=50`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                isLoading.sensor = false;
+                debugFetchResponse('sensor API (humidity)', data);
+                
+                // Cache the data
+                cachedData.sensor[assetId] = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+                
+                updateSensorChart(data, null, 'Humidity', '#2a9d8f');
+                
+                // Hide loading overlay
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                handleSensorDataError(error, assetId, loadingOverlay);
+            });
+    }
+    else {
+        // For other assets, use the existing code
+        fetch(`/api/history/sensor/${assetId}?limit=50`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                isLoading.sensor = false;
+                debugFetchResponse('sensor API', data);
+                
+                // Cache the data
+                cachedData.sensor[assetId] = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+                
+                updateSensorChart(data);
+                
+                // Hide loading overlay
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                handleSensorDataError(error, assetId, loadingOverlay);
+            });
+    }
+}
+
+// Add this helper function to handle errors
+function handleSensorDataError(error, assetId, loadingOverlay) {
+    isLoading.sensor = false;
+    console.error('Error loading sensor data:', error);
+    
+    // Hide loading overlay
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+    
+    // Show error in chart area
+    document.getElementById('sensor-chart').innerHTML = `
+        <div class="empty-component">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>Error loading sensor data: ${error.message}</p>
+            <button class="refresh-btn" onclick="loadSensorData('${assetId}')">
+                <i class="fas fa-sync-alt"></i> Try Again
+            </button>
+        </div>
+    `;
+}
+
+    
+    function updateSensorSummary(data) {
+        if (!data || data.length === 0) {
+            document.getElementById('avg-value').textContent = 'No data';
+            document.getElementById('min-value').textContent = 'No data';
+            document.getElementById('max-value').textContent = 'No data';
+            document.getElementById('latest-value').textContent = 'No data';
+            document.getElementById('data-count').textContent = '0';
+            return;
+        }
+        
+        // Calculate statistics
+        const values = data.map(item => parseFloat(item.value));
+        const sum = values.reduce((a, b) => a + b, 0);
+        const avg = sum / values.length;
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        
+        // Sort data by timestamp to get latest
+        const sortedData = [...data].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        const latest = sortedData[0];
+        
+        // Update the summary
+        document.getElementById('avg-value').textContent = `${avg.toFixed(2)} ${latest.unit || ''}`;
+        document.getElementById('min-value').textContent = `${min.toFixed(2)} ${latest.unit || ''}`;
+        document.getElementById('max-value').textContent = `${max.toFixed(2)} ${latest.unit || ''}`;
+        document.getElementById('latest-value').textContent = `${parseFloat(latest.value).toFixed(2)} ${latest.unit || ''} (${new Date(latest.timestamp).toLocaleString()})`;
+        document.getElementById('data-count').textContent = data.length;
+    }
+    
+    function updateSensorChart(data, humidityData = null, title = null, chartColor = '#4361ee') {
+    // Clear any existing chart
+    document.getElementById('sensor-chart').innerHTML = '';
+    
+    // For empty data
+    if (!data || data.length === 0) {
+        document.getElementById('sensor-chart').innerHTML = `
+            <div class="empty-component">
+                <i class="fas fa-info-circle"></i>
+                <p>No sensor data available for this asset.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Get asset name for display
+    let assetName = '';
+    if (currentAsset === 'A1-temp') {
+        assetName = 'Air Temperature';
+    } else if (currentAsset === 'A1-humidity') {
+        assetName = 'Air Humidity';
+    } else if (currentAsset === 'A2') {
+        assetName = 'Water Temperature';
+    } else if (currentAsset === 'A3') {
+        assetName = 'Ultrasonic Distance';
+    } else if (currentAsset === 'A4') {
+        assetName = 'Water Flow';
+    } else {
+        assetName = currentAsset;
+    }
+    
+    // Create a single chart with the appropriate title
+    createSingleSensorChart(data, 'sensor-chart', chartColor, title || assetName);
+}
+    function createSingleSensorChart(data, elementId, color = '#4361ee', seriesName = null) {
+        if (!data || data.length === 0) {
+            return;
+        }
+        
+        // Sort data by timestamp (oldest first for chart)
+        data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+        const timestamps = data.map(item => new Date(item.timestamp).getTime());
+        const values = data.map(item => parseFloat(item.value));
+        const unit = data[0].unit || '';
+        
+        // Use provided series name or default to asset ID
+        const name = seriesName || `${currentAsset} Sensor Data`;
+        
+        // ApexCharts configuration
+        const options = {
+            series: [{
+                name: name,
+                data: timestamps.map((time, index) => [time, values[index]])
+            }],
+            chart: {
+                type: 'line',
+                height: 300,
+                background: 'transparent',
+                foreColor: '#b8b8b8',
+                animations: {
+                    enabled: true
+                },
+                toolbar: {
+                    show: true,
+                    tools: {
+                        download: true,
+                        selection: true,
+                        zoom: true,
+                        zoomin: true,
+                        zoomout: true,
+                        pan: true,
+                        reset: true
+                    }
+                }
+            },
+            colors: [color],
+            stroke: {
+                curve: 'smooth',
+                width: 2
+            },
+            xaxis: {
+                type: 'datetime',
+                labels: {
+                    datetimeUTC: false,
+                    format: 'HH:mm'
+                }
+            },
+            yaxis: {
+                labels: {
+                    formatter: function(value) {
+                        return value + (unit ? ` ${unit}` : '');
+                    }
+                }
+            },
+            tooltip: {
+                theme: 'dark',
+                x: {
+                    format: 'dd MMM yyyy HH:mm'
+                },
+                y: {
+                    formatter: function(value) {
+                        return value + (unit ? ` ${unit}` : '');
+                    }
+                },
+                style: {
+                    fontSize: '12px',
+                    fontFamily: 'Segoe UI, sans-serif'
+                },
+                marker: {
+                    show: true,
+                },
+                fixed: {
+                    enabled: false,
+                    position: 'topRight',
+                    offsetX: 0,
+                    offsetY: 0,
+                }
+            },
+            grid: {
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                row: {
+                    colors: ['transparent', 'rgba(255, 255, 255, 0.05)']
+                }
+            },
+            markers: {
+                size: 4,
+                colors: ['#fff'],
+                strokeColors: color,
+                strokeWidth: 2,
+                hover: {
+                    size: 6
+                }
+            },
+            dataLabels: {
+                enabled: false
+            }
+        };
+        
+        const chart = new ApexCharts(document.getElementById(elementId), options);
+        chart.render();
+    }
+    
+    function loadPredictionData(assetId) {
+        currentAsset = assetId;
+        isLoading.prediction = true;
+        
+        // Show loading state for table
+        const tableBody = document.querySelector('#prediction-table tbody');
+        tableBody.innerHTML = '<tr class="loading-row"><td colspan="4"><i class="fas fa-spinner fa-spin"></i> Loading prediction data...</td></tr>';
+        
+        // Check cache first
+        if (cachedData.prediction[assetId] && cachedData.prediction[assetId].timestamp > Date.now() - 60000) {
+            updatePredictionTable(cachedData.prediction[assetId].data);
+            isLoading.prediction = false;
+            return;
+        }
+        
+        fetch(`/api/history/predictions/${assetId}?limit=50`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                isLoading.prediction = false;
+                debugFetchResponse('prediction API', data);
+                
+                // Cache the data
+                cachedData.prediction[assetId] = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+                
+                updatePredictionTable(data);
+            })
+            .catch(error => {
+                isLoading.prediction = false;
+                console.error('Error loading prediction data:', error);
+                
+                // Show error in table
+                tableBody.innerHTML = '';
+                const errorRow = document.createElement('tr');
+                errorRow.innerHTML = `<td colspan="4" class="empty-component">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Error loading prediction data: ${error.message}</p>
+                    <button class="refresh-btn" onclick="loadPredictionData('${assetId}')">
+                        <i class="fas fa-sync-alt"></i> Try Again
+                    </button>
+                </td>`;
+                tableBody.appendChild(errorRow);
+            });
+    }
+    
+    function updatePredictionTable(data) {
+        const tableBody = document.querySelector('#prediction-table tbody');
+        tableBody.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+            const emptyRow = document.createElement('tr');
+            emptyRow.innerHTML = `<td colspan="4" class="empty-component">
+                <i class="fas fa-info-circle"></i>
+                <p>No prediction data available for this asset.</p>
+            </td>`;
+            tableBody.appendChild(emptyRow);
+            return;
+        }
+        
+        // Sort data by timestamp (newest first)
+        data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        // Add rows to the table
+        data.forEach(prediction => {
+            const row = document.createElement('tr');
+            
+            // Format timestamp
+            const timestamp = new Date(prediction.timestamp).toLocaleString();
+            
+            // Format probability
+            const probability = parseFloat(prediction.failure_probability);
+            const formattedProbability = `${(probability * 100).toFixed(2)}%`;
+            
+            // Determine status class based on probability
+            let statusClass = 'normal';
+            let statusText = 'Normal';
+            
+            if (probability >= 0.7) {
+                statusClass = 'danger';
+                statusText = 'Critical';
+            } else if (probability >= 0.4) {
+                statusClass = 'warning';
+                statusText = 'Warning';
+            }
+            
+            // Asset names mapping
+            const assetNames = {
+                'A1': 'Air Temp & Humidity',
+                'A2': 'Water Temperature',
+                'A3': 'Ultrasonic Distance',
+                'A4': 'Water Flow'
+            };
+            
+            row.innerHTML = `
+                <td>${timestamp}</td>
+                <td>${assetNames[prediction.asset_id] || prediction.asset_id}</td>
+                <td>${formattedProbability}</td>
+                <td><span class="prediction-status ${statusClass}">${statusText}</span></td>
+            `;
+            
+            tableBody.appendChild(row);
+        });
+    }
+    function updatePredictionChart(data) {
+    // Get the canvas element
+    const canvas = document.getElementById('prediction-chart');
+    
+    // Destroy the existing chart if it exists
+    if (window.predictionChart) {
+        window.predictionChart.destroy();
+    }
+    
+    // Clear any existing chart instances
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (!data || data.length === 0) {
+        return;
+    }
+    
+    // Sort data by timestamp (oldest first for chart)
+    data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    
+    const timestamps = data.map(item => new Date(item.timestamp));
+    const probabilities = data.map(item => parseFloat(item.probability) * 100); // Convert to percentage
+    
+    // Create gradient for background
+    const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(230, 57, 70, 0.7)');  // Danger zone (top)
+    gradient.addColorStop(0.3, 'rgba(255, 159, 28, 0.7)'); // Warning zone
+    gradient.addColorStop(0.6, 'rgba(42, 157, 143, 0.7)'); // Safe zone (bottom)
+    
+    // Create new chart with enhanced styling
+    window.predictionChart = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: timestamps,
+                datasets: [{
+                    label: `${currentAsset} Failure Probability (%)`,
+                    data: probabilities,
+                    borderColor: '#e63946',
+                    backgroundColor: 'rgba(230, 57, 70, 0.2)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#ffffff',
+                    pointHoverBackgroundColor: '#e63946'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute',
+                            displayFormats: {
+                                minute: 'HH:mm',
+                                hour: 'MMM DD, HH:mm'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#b8b8b8',
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#b8b8b8',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    annotation: {
+                        annotations: {
+                            warningLine: {
+                                type: 'line',
+                                yMin: 40,
+                                yMax: 40,
+                                borderColor: 'rgba(255, 159, 28, 0.7)',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                label: {
+                                    content: 'Warning Threshold',
+                                    enabled: true,
+                                    position: 'end',
+                                    backgroundColor: 'rgba(255, 159, 28, 0.7)'
+                                }
+                            },
+                            criticalLine: {
+                                type: 'line',
+                                yMin: 70,
+                                yMax: 70,
+                                borderColor: 'rgba(230, 57, 70, 0.7)',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                label: {
+                                    content: 'Critical Threshold',
+                                    enabled: true,
+                                    position: 'end',
+                                    backgroundColor: 'rgba(230, 57, 70, 0.7)'
+                                }
+                            }
+                        }
+                    },
+                    legend: {
+                        labels: {
+                            color: '#e6e6e6',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        titleFont: {
+                            weight: 'bold',
+                            size: 14
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return `Probability: ${context.raw.toFixed(2)}%`;
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                elements: {
+                    line: {
+                        borderJoinStyle: 'round'
+                    }
+                }
+            }
+        });
+    }
+</script>

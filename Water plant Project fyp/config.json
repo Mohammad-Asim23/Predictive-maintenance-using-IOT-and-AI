@@ -1,0 +1,78 @@
+{
+    "read_demo_data": false,
+    "csv_file_path": "C:/Users/DELL/Desktop/my fyp ml/Water plant Project fyp/water_plant_sensor_data.csv",
+    "mqtt_broker": "broker.emqx.io",
+    "mqtt_port": 8083,
+    "mqtt_topic": "esp8266/sensorData",
+    "update_interval": 2,
+    "prediction_api_url": "http://localhost:5000/api/predictions",
+    "notification_email": "mohasim541@gmail.com",
+    "notification_email_sender": "mohasim541@gmail.com",
+    "notification_email_password": "ieco nxai mbkr yoeu",
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "notify_failures": true,
+    "notify_warnings": false,
+    "gauges": [
+        {
+            "type": "Gauge",
+            "title": "Distance (cm)",
+            "value_key": "Ultrasonic.distance_cm",
+            "min_val": 0.0,
+            "max_val": 500.0,
+            "color": "#36dd68",
+            "warning_threshold": 300.0,
+            "danger_threshold": 400.0,
+            "warning_color": "#ff9800",
+            "danger_color": "#f44336"
+        },
+        {
+            "type": "Gauge",
+            "title": "Flow Rate (L/min)",
+            "value_key": "FlowSensor.flowRate_Lmin",
+            "min_val": 0,
+            "max_val": 100,
+            "color": "green",
+            "warning_threshold": 60,
+            "danger_threshold": 80,
+            "warning_color": "#FF9800",
+            "danger_color": "#F44336"
+        },
+        {
+            "type": "Gauge",
+            "title": "Temperature (C)",
+            "value_key": "DS18B20.temperature_C",
+            "min_val": 0.0,
+            "max_val": 125.0,
+            "color": "#ffee2e",
+            "warning_threshold": 20.0,
+            "danger_threshold": 76.0,
+            "warning_color": "#ff9800",
+            "danger_color": "#f44336"
+        },
+        {
+            "type": "Gauge",
+            "title": "Humidity (%)",
+            "value_key": "DHT11.humidity_percent",
+            "min_val": 0,
+            "max_val": 100,
+            "color": "purple",
+            "warning_threshold": 70,
+            "danger_threshold": 85,
+            "warning_color": "#FF9800",
+            "danger_color": "#F44336"
+        },
+        {
+            "type": "Gauge",
+            "title": "Water Temperature (C)",
+            "value_key": "DHT11.temperature_C",
+            "min_val": 0,
+            "max_val": 100,
+            "color": "#00fffb",
+            "warning_threshold": 60,
+            "danger_threshold": 80,
+            "warning_color": "#FF9800",
+            "danger_color": "#F44336"
+        }
+    ]
+}
