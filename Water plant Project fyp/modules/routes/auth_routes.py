@@ -56,6 +56,18 @@ def signup():
             flash('All fields are required', 'error')
             return render_template('auth.html', action="Sign Up")
         
+        # Validate email format
+        import re
+        email_pattern = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+        if not email_pattern.match(email):
+            flash('Please enter a valid email address', 'error')
+            return render_template('auth.html', action="Sign Up")
+        
+        # Validate password length
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long', 'error')
+            return render_template('auth.html', action="Sign Up")
+        
         # Check if email already exists before trying to create user
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:

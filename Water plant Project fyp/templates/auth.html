@@ -64,6 +64,31 @@
         opacity: 0;
         transition: opacity 0.5s ease-out;
       }
+      
+      /* Form validation styles */
+      input:invalid {
+        border: 2px solid #ff6b6b;
+      }
+      
+      input:valid {
+        border: 2px solid #4CAF50;
+      }
+      
+      .password-hint {
+        color: #888;
+        font-size: 0.8rem;
+        margin-top: -10px;
+        margin-bottom: 15px;
+        display: block;
+      }
+      
+      .validation-error {
+        color: #f44336;
+        font-size: 0.8rem;
+        margin-top: -10px;
+        margin-bottom: 10px;
+        display: block;
+      }
     </style>
   </head>
   <body>
@@ -104,15 +129,16 @@
             </p>
           </form>
           {% elif action == "Sign Up" %}
-          <form action="{{ url_for('auth.signup') }}" method="POST">
+          <form action="{{ url_for('auth.signup') }}" method="POST" id="signupForm" onsubmit="return validateForm()">
             <label for="name">Full Name</label>
             <input type="text" id="name" name="name" required />
 
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" required />
+            <input type="email" id="email" name="email" required pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" title="Please enter a valid email address" />
 
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" required />
+            <input type="password" id="password" name="password" required minlength="8" title="Password must be at least 8 characters long" />
+            <small id="password-hint" class="password-hint">Password must be at least 8 characters long</small>
 
             <button type="submit">Sign Up</button>
             <p>
@@ -141,7 +167,77 @@
             message.remove();
           }, 3500);
         });
+        
+        // Add real-time validation for password field
+        const passwordField = document.getElementById('password');
+        const passwordHint = document.getElementById('password-hint');
+        
+        if (passwordField && passwordHint) {
+          // Initially hide the hint until focus
+          passwordHint.style.display = 'none';
+          
+          // Show hint on focus
+          passwordField.addEventListener('focus', function() {
+            passwordHint.style.display = 'block';
+            passwordHint.style.color = '#888';
+          });
+          
+          // Hide hint on blur if valid
+          passwordField.addEventListener('blur', function() {
+            if (this.value.length >= 8 || this.value.length === 0) {
+              passwordHint.style.display = 'none';
+            }
+          });
+          
+          // Update hint during typing
+          passwordField.addEventListener('input', function() {
+            passwordHint.style.display = 'block';
+            
+            if (this.value.length < 8 && this.value.length > 0) {
+              passwordHint.style.color = '#f44336';
+            } else {
+              passwordHint.style.color = '#4CAF50';
+            }
+          });
+        }
+        
+        // Remove the duplicate event listener that was here
       });
+      
+      // Form validation function
+      function validateForm() {
+        const emailField = document.getElementById('email');
+        const passwordField = document.getElementById('password');
+        let isValid = true;
+        
+        // Email validation
+        const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailPattern.test(emailField.value)) {
+          const errorElement = document.getElementById('email-error') || document.createElement('span');
+          errorElement.id = 'email-error';
+          errorElement.className = 'validation-error';
+          errorElement.textContent = 'Please enter a valid email address';
+          if (!document.getElementById('email-error')) {
+            emailField.parentNode.insertBefore(errorElement, emailField.nextSibling);
+          }
+          isValid = false;
+        } else {
+          const errorElement = document.getElementById('email-error');
+          if (errorElement) errorElement.remove();
+        }
+        
+        // Password validation - fixed to properly use the hint
+        if (passwordField.value.length < 8) {
+          const passwordHint = document.getElementById('password-hint');
+          if (passwordHint) {
+            passwordHint.style.display = 'block';
+            passwordHint.style.color = '#f44336';
+          }
+          isValid = false;
+        }
+        
+        return isValid; // This was missing, causing the form to always submit
+      }
     </script>
   </body>
 </html>
