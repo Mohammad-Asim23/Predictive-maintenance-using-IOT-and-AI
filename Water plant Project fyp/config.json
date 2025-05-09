@@ -45,8 +45,8 @@
             "min_val": 0.0,
             "max_val": 125.0,
             "color": "#ffee2e",
-            "warning_threshold": 20.0,
-            "danger_threshold": 76.0,
+            "warning_threshold": 50.0,
+            "danger_threshold": 78.0,
             "warning_color": "#ff9800",
             "danger_color": "#f44336"
         },
@@ -66,13 +66,13 @@
             "type": "Gauge",
             "title": "Water Temperature (C)",
             "value_key": "DHT11.temperature_C",
-            "min_val": 0,
-            "max_val": 100,
+            "min_val": 0.0,
+            "max_val": 100.0,
             "color": "#00fffb",
-            "warning_threshold": 60,
-            "danger_threshold": 80,
-            "warning_color": "#FF9800",
-            "danger_color": "#F44336"
+            "warning_threshold": 47.0,
+            "danger_threshold": 80.0,
+            "warning_color": "#ff9800",
+            "danger_color": "#f44336"
         }
     ]
 }
