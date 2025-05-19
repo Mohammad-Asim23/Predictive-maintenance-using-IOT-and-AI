@@ -56,82 +56,150 @@ class Database:
         )
         ''')
         
-        # Create separate tables for air temperature and humidity
-        self.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS air_temperature (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT NOT NULL,
-            asset_id TEXT NOT NULL,
-            value REAL NOT NULL,
-            unit TEXT
-        )
-        ''')
-        
-        self.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS air_humidity (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT NOT NULL,
-            asset_id TEXT NOT NULL,
-            value REAL NOT NULL,
-            unit TEXT
-        )
-        ''')
-        
         # Create predictions table
         self.cursor.execute('''
         CREATE TABLE IF NOT EXISTS predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT NOT NULL,
             asset_id TEXT NOT NULL,
-            failure_probability REAL NOT NULL,
-            failure_predicted INTEGER NOT NULL
+            failure_predicted INTEGER NOT NULL,
+            failure_probability REAL NOT NULL
         )
         ''')
         
         self.conn.commit()
-        self.close()
     
-    def store_sensor_data(self, data):
-        """Store sensor data in the database."""
+    def add_sensor_reading(self, timestamp, asset_id, sensor_type, sensor_name, value, unit=None):
+        """Add a sensor reading to the database"""
+        self.connect()
         try:
-            # Determine which table to use based on sensor type and name
-            if data['sensor_type'] == 'DHT11' and data['sensor_name'] == 'temperature':
-                self.cursor.execute(
-                    'INSERT INTO air_temperature (timestamp, asset_id, value) VALUES (?, ?, ?)',
-                    (data['timestamp'], data['asset_id'], data['value'])
-                )
-            elif data['sensor_type'] == 'DHT11' and data['sensor_name'] == 'humidity':
-                self.cursor.execute(
-                    'INSERT INTO air_humidity (timestamp, asset_id, value) VALUES (?, ?, ?)',
-                    (data['timestamp'], data['asset_id'], data['value'])
-                )
-            else:
-                # For other sensors, use the general sensor_data table
-                self.cursor.execute(
-                    'INSERT INTO sensor_data (timestamp, asset_id, sensor_type, sensor_name, value, unit) VALUES (?, ?, ?, ?, ?, ?)',
-                    (data['timestamp'], data['asset_id'], data['sensor_type'], data['sensor_name'], data['value'], data['unit'])
-                )
+            self.cursor.execute('''
+            INSERT INTO sensor_data (timestamp, asset_id, sensor_type, sensor_name, value, unit)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''', (timestamp, asset_id, sensor_type, sensor_name, value, unit))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Error adding sensor reading: {e}")
+            return False
+    
+    def add_prediction(self, asset_id, timestamp, failure_predicted, failure_probability):
+        """Add a prediction to the database"""
+        self.connect()
+        try:
+            self.cursor.execute('''
+            INSERT INTO predictions (timestamp, asset_id, failure_predicted, failure_probability)
+            VALUES (?, ?, ?, ?)
+            ''', (timestamp, asset_id, failure_predicted, failure_probability))
+            self.conn.commit()
+            return True
+        except sqlite3.Error as e:
+            print(f"Error adding prediction: {e}")
+            return False
+    
+    def get_recent_sensor_readings(self, limit=10):
+        """Get the most recent sensor readings"""
+        self.connect()
+        try:
+            self.cursor.execute('''
+            SELECT * FROM sensor_data
+            ORDER BY id DESC
+            LIMIT ?
+            ''', (limit,))
+            columns = [column[0] for column in self.cursor.description]
+            rows = self.cursor.fetchall()
+            return [dict(zip(columns, row)) for row in rows]
+        except sqlite3.Error as e:
+            print(f"Error getting recent sensor readings: {e}")
+            return []
+    
+    def get_recent_predictions(self, limit=10):
+        """Get the most recent predictions"""
+        self.connect()
+        try:
+            self.cursor.execute('''
+            SELECT * FROM predictions
+            ORDER BY id DESC
+            LIMIT ?
+            ''', (limit,))
+            columns = [column[0] for column in self.cursor.description]
+            rows = self.cursor.fetchall()
+            return [dict(zip(columns, row)) for row in rows]
+        except sqlite3.Error as e:
+            print(f"Error getting recent predictions: {e}")
+            return []
+    
+    def get_sensor_data_by_asset(self, asset_id, limit=100):
+        """Get sensor data for a specific asset"""
+        self.connect()
+        try:
+            self.cursor.execute('''
+            SELECT * FROM sensor_data
+            WHERE asset_id = ?
+            ORDER BY timestamp DESC
+            LIMIT ?
+            ''', (asset_id, limit))
             
-            self.conn.commit()
-            return True
-        except Exception as e:
-            print(f"Error storing sensor data: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+            columns = [column[0] for column in self.cursor.description]
+            rows = self.cursor.fetchall()
+            return [dict(zip(columns, row)) for row in rows]
+        except sqlite3.Error as e:
+            print(f"Error getting sensor data for asset {asset_id}: {e}")
+            return []
     
-    def store_prediction(self, data):
-        """Store prediction data in the database"""
+    def get_sensor_data_by_sensor(self, asset_id, sensor_name, limit=100):
+        """Get sensor data for a specific asset and sensor name"""
+        self.connect()
         try:
-            self.cursor.execute(
-                'INSERT INTO predictions (timestamp, asset_id, failure_probability, failure_predicted) VALUES (?, ?, ?, ?)',
-                (data['timestamp'], data['asset_id'], data['failure_probability'], data['failure_predicted'])
-            )
-            self.conn.commit()
-            return True
-        except Exception as e:
-            print(f"Error storing prediction: {e}")
-            return False
+            self.cursor.execute('''
+            SELECT * FROM sensor_data
+            WHERE asset_id = ? AND sensor_name = ?
+            ORDER BY timestamp DESC
+            LIMIT ?
+            ''', (asset_id, sensor_name, limit))
+            
+            columns = [column[0] for column in self.cursor.description]
+            rows = self.cursor.fetchall()
+            return [dict(zip(columns, row)) for row in rows]
+        except sqlite3.Error as e:
+            print(f"Error getting sensor data for asset {asset_id} and sensor {sensor_name}: {e}")
+            return []
+    
+    def get_predictions_by_asset(self, asset_id, limit=100):
+        """Get predictions for a specific asset"""
+        self.connect()
+        try:
+            self.cursor.execute('''
+            SELECT * FROM predictions
+            WHERE asset_id = ?
+            ORDER BY timestamp DESC
+            LIMIT ?
+            ''', (asset_id, limit))
+            
+            columns = [column[0] for column in self.cursor.description]
+            rows = self.cursor.fetchall()
+            return [dict(zip(columns, row)) for row in rows]
+        except sqlite3.Error as e:
+            print(f"Error getting predictions for asset {asset_id}: {e}")
+            return []
+    
+    def get_failure_stats(self):
+        """Get failure statistics for all assets"""
+        self.connect()
+        try:
+            self.cursor.execute('''
+            SELECT asset_id, COUNT(*) as count
+            FROM predictions
+            WHERE failure_predicted = 1
+            GROUP BY asset_id
+            ''')
+            
+            columns = [column[0] for column in self.cursor.description]
+            rows = self.cursor.fetchall()
+            return [dict(zip(columns, row)) for row in rows]
+        except sqlite3.Error as e:
+            print(f"Error getting failure stats: {e}")
+            return []
     
     def get_recent_sensor_data(self, asset_id=None, limit=100):
         """Get recent sensor data from the database"""

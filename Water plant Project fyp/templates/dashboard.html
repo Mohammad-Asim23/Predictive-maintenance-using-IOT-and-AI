@@ -564,13 +564,17 @@
         <button onclick="showEditGaugeModal()">
           <i class="fas fa-edit"></i> Edit Gauge
         </button>
-        <label for="demo-mode-toggle">Demo Data Mode</label>
-        <label class="toggle-switch">
-          <input type="checkbox" id="demo-mode-toggle" {% if config['read_demo_data'] %}checked{% endif %}
-            onclick="toggleDemoMode()">
-          <span class="slider"></span>
-        </label>
+       
+        <div class="demo-mode-control">
+          <label for="demo-mode-toggle">Demo Data Mode</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="demo-mode-toggle" {% if config['read_demo_data'] %}checked{% endif %}
+              onclick="toggleDemoMode()">
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
+
 
       <!-- Add the gauge container here -->
       <div class="gauge-container" id="gauge-container">
@@ -611,7 +615,6 @@
     {% endif %}
   </div>
 
-  <!-- Rest of your script and modal content -->
 
   <script>
     let dashboardConfig = {{ config | tojson | safe }};
@@ -672,7 +675,30 @@
     });
   });
 
+  function checkDatabaseData() {
+        fetch('/api/check-data')
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              console.log('Recent sensor data:', data.recent_sensors);
+              console.log('Recent prediction data:', data.recent_predictions);
+              
+              // Show a modal or alert with the results
+              alert(`Database Check Results:
+                
+Recent Sensor Readings: ${data.recent_sensors.length}
+Recent Predictions: ${data.recent_predictions.length}
 
+Check the console for details.`);
+            } else {
+              alert('Error checking database: ' + data.error);
+            }
+          })
+          .catch(error => {
+            console.error('Error checking database:', error);
+            alert('Error checking database. See console for details.');
+          });
+      }
     // Function to initialize gauges
     function initializeGauges() {
       console.log("Initializing gauges with config:", dashboardConfig);
@@ -806,12 +832,34 @@
           console.log("Received MQTT data:", data);
           updateGaugesWithData(data);
           
+          // Save MQTT data to database
+          saveSensorData(data);
+          
           // Hide the status message when we receive data successfully
           hideMqttStatus();
         } catch (error) {
           console.error('Error parsing MQTT message:', error);
         }
       };
+      
+      // Function to save sensor data to database
+      function saveSensorData(data) {
+        fetch('/api/save-sensor-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+          console.log('Sensor data saved to database:', result);
+        })
+        .catch(error => {
+          console.error('Error saving sensor data to database:', error);
+        });
+      }
+      
       
       // Connect the client with proper WebSocket configuration
       mqttClient.connect({
@@ -1082,10 +1130,35 @@ function reconnectMqtt() {
               card.classList.add('normal');
               indicator.className = 'status-indicator normal';
             }
+            
+            // Save prediction data to database
+            savePredictionData(assetId, prediction);
           }
         }
       }
-
+      
+      // Function to save prediction data to database
+      function savePredictionData(assetId, prediction) {
+        fetch('/api/save-prediction', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            asset_id: assetId,
+            failure_predicted: prediction.failure_predicted,
+            failure_probability: prediction.failure_probability,
+            timestamp: prediction.timestamp
+          })
+        })
+        .then(response => response.json())
+        .then(result => {
+          console.log(`Prediction data saved for asset ${assetId}:`, result);
+        })
+        .catch(error => {
+          console.error(`Error saving prediction data for asset ${assetId}:`, error);
+        });
+      }
       // Function to check if notification should be sent and send it
       function checkAndSendNotification(assetId, prediction, status) {
         // Send notification request to server

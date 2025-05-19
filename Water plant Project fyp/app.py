@@ -25,6 +25,28 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Initialize SQLAlchemy with the Flask app
 db.init_app(app)
 
+# Initialize migration
+from flask_migrate import Migrate
+migrate = Migrate(app, db)
+
+# Create database tables
+with app.app_context():
+    # First create all tables
+    db.create_all()
+    
+    # Then check if the is_verified column exists
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        columns = [column['name'] for column in inspector.get_columns('user')]
+        
+        if 'is_verified' not in columns:
+            # Add the is_verified column
+            db.engine.execute('ALTER TABLE user ADD COLUMN is_verified BOOLEAN DEFAULT FALSE')
+    except Exception as e:
+        print(f"Note: Could not check for is_verified column: {e}")
+        print("This is normal if the database is being created for the first time.")
+
 # Load configuration for MQTT
 config = load_config()
 mqtt_broker = config.get('mqtt_broker', 'broker.emqx.io')
@@ -44,14 +66,35 @@ database = Database()
 # Global variable to store the latest MQTT data
 mqtt_data = {}
 
+# Add this after initializing the app and before creating tables
+from flask_migrate import Migrate
+
+# Initialize migration
+migrate = Migrate(app, db)
+
 # Create database tables
 with app.app_context():
+    # Check if the is_verified column exists
+    from sqlalchemy import inspect
+    inspector = inspect(db.engine)
+    columns = [column['name'] for column in inspector.get_columns('user')]
+    
+    if 'is_verified' not in columns:
+        # Add the is_verified column
+        db.engine.execute('ALTER TABLE user ADD COLUMN is_verified BOOLEAN DEFAULT FALSE')
+    
     db.create_all()
 
 # Register the blueprints
 # And when registering the Blueprint:
 app.register_blueprint(settings)
 app.register_blueprint(auth_bp)
+
+# Add this import at the top with your other imports
+from modules.routes.data_routes import data_routes
+
+# Add this line where you register your other blueprints
+app.register_blueprint(data_routes)
 
 # Your existing routes...
 

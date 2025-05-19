@@ -3,8 +3,17 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from models.user import db, User
 from sqlalchemy.exc import IntegrityError
 from functools import wraps
+import random
+import string
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__)
+
+# Dictionary to store OTPs and their expiration times
+otp_store = {}
 
 def login_required(f):
     @wraps(f)
@@ -14,6 +23,54 @@ def login_required(f):
             return redirect(url_for('auth.login'))
         return f(*args, **kwargs)
     return decorated_function
+
+# Function to generate a random OTP
+def generate_otp(length=6):
+    return ''.join(random.choices(string.digits, k=length))
+
+
+# Function to send OTP via email
+def send_otp_email(email, otp):
+    try:
+
+        # Configure these settings with your email provider details
+        smtp_server = "smtp.gmail.com"
+        smtp_port = 587
+        sender_email = "mohasim541@gmail.com"  # Replace with your email
+        sender_password = "ieco nxai mbkr yoeu"  # Replace with your app password
+        
+        # Create message
+        message = MIMEMultipart()
+        message["From"] = sender_email
+        message["To"] = email
+        message["Subject"] = "Your Verification Code for Predictive Maintenance System"
+        
+        # Email body
+        body = f"""
+        <html>
+        <body>
+            <h2>Email Verification</h2>
+            <p>Thank you for signing up with our Predictive Maintenance System!</p>
+            <p>Your verification code is: <strong>{otp}</strong></p>
+            <p>This code will expire in 10 minutes.</p>
+            <p>If you didn't request this code, please ignore this email.</p>
+        </body>
+        </html>
+        """
+        
+        # Add HTML content
+        message.attach(MIMEText(body, "html"))
+        
+        # Connect to server and send email
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, email, message.as_string())
+        
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
 
 # Add this to the login route
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -29,10 +86,15 @@ def login():
         user = User.query.filter_by(email=email).first()
         
         if user and user.check_password(password):
+            # Check if user is verified
+            if not user.is_verified:
+                flash('Please verify your email before logging in', 'error')
+                return redirect(url_for('auth.verify_email', email=email))
+                
             session.clear()
             session['user_id'] = user.id
             session['user_name'] = user.name
-            session['user_email'] = user.email  # Make sure this line is present
+            session['user_email'] = user.email
             session.permanent = True
             flash('Login successful!', 'success')
             return redirect(url_for('dashboard'))
@@ -75,14 +137,32 @@ def signup():
             return render_template('auth.html', action="Sign Up")
         
         try:
-            new_user = User(name=name, email=email)
+            # Create user with verified=False
+            new_user = User(name=name, email=email, is_verified=False)
             new_user.set_password(password)
             
             db.session.add(new_user)
             db.session.commit()
             
-            flash('Account created successfully! Please login.', 'success')
-            return redirect(url_for('auth.login'))
+            # Generate and store OTP
+            otp = generate_otp()
+            expiry_time = datetime.now() + timedelta(minutes=10)
+            otp_store[email] = {
+                'otp': otp,
+                'expiry': expiry_time,
+                'user_id': new_user.id
+            }
+            
+            # Send OTP email
+            if send_otp_email(email, otp):
+                flash('Account created! Please check your email for verification code.', 'success')
+                return redirect(url_for('auth.verify_email', email=email))
+            else:
+                flash('Failed to send verification email. Please try again.', 'error')
+                # Delete the user if email sending fails
+                db.session.delete(new_user)
+                db.session.commit()
+                return render_template('auth.html', action="Sign Up")
             
         except Exception as e:
             db.session.rollback()
@@ -91,14 +171,78 @@ def signup():
             
     return render_template('auth.html', action="Sign Up")
 
+@auth_bp.route('/verify-email/<email>', methods=['GET', 'POST'])
+def verify_email(email):
+    # If OTP for this email doesn't exist, redirect to signup
+    if email not in otp_store:
+        flash('Verification session expired. Please sign up again.', 'error')
+        return redirect(url_for('auth.signup'))
+    
+    if request.method == 'POST':
+        entered_otp = request.form.get('otp')
+        
+        # Check if OTP is valid and not expired
+        if datetime.now() > otp_store[email]['expiry']:
+            # OTP expired
+            del otp_store[email]
+            flash('Verification code expired. Please sign up again.', 'error')
+            return redirect(url_for('auth.signup'))
+        
+        if entered_otp == otp_store[email]['otp']:
+            # OTP is correct, mark user as verified
+            user_id = otp_store[email]['user_id']
+            user = User.query.get(user_id)
+            
+            if user:
+                user.is_verified = True
+                db.session.commit()
+                
+                # Clean up OTP store
+                del otp_store[email]
+                
+                flash('Email verified successfully! You can now login.', 'success')
+                return redirect(url_for('auth.login'))
+            else:
+                flash('User not found. Please sign up again.', 'error')
+                return redirect(url_for('auth.signup'))
+        else:
+            flash('Invalid verification code. Please try again.', 'error')
+    
+    return render_template('verify_email.html', email=email)
+
+@auth_bp.route('/resend-otp/<email>')
+def resend_otp(email):
+    # Check if user exists
+    user = User.query.filter_by(email=email).first()
+    
+    if not user:
+        flash('Email not found. Please sign up first.', 'error')
+        return redirect(url_for('auth.signup'))
+    
+    # Generate new OTP
+    otp = generate_otp()
+    expiry_time = datetime.now() + timedelta(minutes=10)
+    otp_store[email] = {
+        'otp': otp,
+        'expiry': expiry_time,
+        'user_id': user.id
+    }
+    
+    # Send OTP email
+    if send_otp_email(email, otp):
+        flash('Verification code resent. Please check your email.', 'success')
+    else:
+        flash('Failed to send verification email. Please try again.', 'error')
+    
+    return redirect(url_for('auth.verify_email', email=email))
+
 @auth_bp.route('/logout')
 def logout():
     session.clear()
     flash('You have been logged out', 'info')
     return redirect(url_for('auth.login'))
 
-# Add this new route after your existing routes
-# Change the route name to match the template
+# Profile update route
 @auth_bp.route('/profile-update', methods=['POST'])
 @login_required
 def profile_update():

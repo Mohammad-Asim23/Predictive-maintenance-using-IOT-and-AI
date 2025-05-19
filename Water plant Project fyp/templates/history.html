@@ -468,6 +468,29 @@
         prediction: {}
     };
     
+    function getAssetName(assetId) {
+            const assetNames = {
+                'A1': 'Air Temp & Humidity',
+                'A1-temp': 'Air Temperature',
+                'A1-humidity': 'Air Humidity',
+                'A2': 'Water Temperature',
+                'A3': 'Ultrasonic Distance',
+                'A4': 'Water Flow'
+            };
+            return assetNames[assetId] || assetId;
+        }
+        
+        function getAssetColor(assetId) {
+            const assetColors = {
+                'A1': '#4361ee',
+                'A1-temp': '#4361ee',
+                'A1-humidity': '#3a86ff',
+                'A2': '#f72585',
+                'A3': '#7209b7',
+                'A4': '#4cc9f0'
+            };
+            return assetColors[assetId] || '#4361ee';
+        }
     
     // Add debugging for fetch responses
     function debugFetchResponse(endpoint, data) {
@@ -651,118 +674,94 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function loadSensorData(assetId) {
-    currentAsset = assetId;
-    isLoading.sensor = true;
-    
-    // Show loading state for chart
-    const chartContainer = document.querySelector('#sensor-chart').closest('.chart-container');
-    let loadingOverlay = chartContainer.querySelector('.chart-loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = 'flex';
-    }
-    
-    // Check cache first
-    if (cachedData.sensor[assetId] && cachedData.sensor[assetId].timestamp > Date.now() - 60000) {
-        updateSensorChart(cachedData.sensor[assetId].data);
-        if (loadingOverlay) {
-            loadingOverlay.style.display = 'none';
+            currentAsset = assetId;
+            isLoading.sensor = true;
+            
+            // Show loading state for chart
+            document.getElementById('sensor-chart').innerHTML = `
+                <div class="loading-container">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading sensor data...</p>
+                </div>
+            `;
+            
+            // Make sure loading overlay is visible
+            const loadingOverlay = document.getElementById('sensor-chart-loading');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+            }
+            
+            // Fetch data from the database API
+            fetch(`/api/sensor-history/${assetId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    isLoading.sensor = false;
+                    console.log('Sensor data result:', result);
+                    
+                    // Hide loading overlay
+                    if (loadingOverlay) {
+                        loadingOverlay.style.display = 'none';
+                    }
+                    
+                    if (!result.success) {
+                        throw new Error(result.error || 'Unknown error');
+                    }
+                    
+                    const data = result.data;
+                    
+                    if (!data || data.length === 0) {
+                        // Show empty state
+                        document.getElementById('sensor-chart').innerHTML = `
+                            <div class="empty-component">
+                                <i class="fas fa-info-circle"></i>
+                                <p>No sensor data available for this asset.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Format data for chart
+                    const chartData = data.map(item => ({
+                        timestamp: new Date(item.timestamp),
+                        value: parseFloat(item.value),
+                        unit: item.unit
+                    }));
+                    
+                    // Update chart
+                    updateSensorChart(
+                        chartData,
+                        null,
+                        `${getAssetName(assetId)} Sensor Data`,
+                        getAssetColor(assetId)
+                    );
+                })
+                .catch(error => {
+                    isLoading.sensor = false;
+                    console.error('Error loading sensor data:', error);
+                    
+                    // Hide loading overlay
+                    if (loadingOverlay) {
+                        loadingOverlay.style.display = 'none';
+                    }
+                    
+                    // Show error state
+                    document.getElementById('sensor-chart').innerHTML = `
+                        <div class="empty-component error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>Error loading sensor data: ${error.message}</p>
+                            <button class="refresh-btn" onclick="loadSensorData('${assetId}')">
+                                <i class="fas fa-sync-alt"></i> Try Again
+                            </button>
+                        </div>
+                    `;
+                });
         }
-        isLoading.sensor = false;
-        return;
-    }
-    
-    // Handle the new asset IDs for temperature and humidity
-    if (assetId === 'A1-temp') {
-        // Fetch only temperature data
-        fetch(`/api/history/sensor/A1?type=temperature&limit=50`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                isLoading.sensor = false;
-                debugFetchResponse('sensor API (temperature)', data);
-                
-                // Cache the data
-                cachedData.sensor[assetId] = {
-                    data: data,
-                    timestamp: Date.now()
-                };
-                
-                updateSensorChart(data, null, 'Temperature', '#4361ee');
-                
-                // Hide loading overlay
-                if (loadingOverlay) {
-                    loadingOverlay.style.display = 'none';
-                }
-            })
-            .catch(error => {
-                handleSensorDataError(error, assetId, loadingOverlay);
-            });
-    } 
-    else if (assetId === 'A1-humidity') {
-        // Fetch only humidity data
-        fetch(`/api/history/sensor/A1?type=humidity&limit=50`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                isLoading.sensor = false;
-                debugFetchResponse('sensor API (humidity)', data);
-                
-                // Cache the data
-                cachedData.sensor[assetId] = {
-                    data: data,
-                    timestamp: Date.now()
-                };
-                
-                updateSensorChart(data, null, 'Humidity', '#2a9d8f');
-                
-                // Hide loading overlay
-                if (loadingOverlay) {
-                    loadingOverlay.style.display = 'none';
-                }
-            })
-            .catch(error => {
-                handleSensorDataError(error, assetId, loadingOverlay);
-            });
-    }
-    else {
-        // For other assets, use the existing code
-        fetch(`/api/history/sensor/${assetId}?limit=50`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                isLoading.sensor = false;
-                debugFetchResponse('sensor API', data);
-                
-                // Cache the data
-                cachedData.sensor[assetId] = {
-                    data: data,
-                    timestamp: Date.now()
-                };
-                
-                updateSensorChart(data);
-                
-                // Hide loading overlay
-                if (loadingOverlay) {
-                    loadingOverlay.style.display = 'none';
-                }
-            })
-            .catch(error => {
-                handleSensorDataError(error, assetId, loadingOverlay);
-            });
-    }
-}
+        
 
 // Add this helper function to handle errors
 function handleSensorDataError(error, assetId, loadingOverlay) {
@@ -819,6 +818,12 @@ function handleSensorDataError(error, assetId, loadingOverlay) {
     function updateSensorChart(data, humidityData = null, title = null, chartColor = '#4361ee') {
     // Clear any existing chart
     document.getElementById('sensor-chart').innerHTML = '';
+    
+    // Hide loading overlay
+    const loadingOverlay = document.getElementById('sensor-chart-loading');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
     
     // For empty data
     if (!data || data.length === 0) {
@@ -960,269 +965,146 @@ function handleSensorDataError(error, assetId, loadingOverlay) {
     }
     
     function loadPredictionData(assetId) {
-        currentAsset = assetId;
-        isLoading.prediction = true;
-        
-        // Show loading state for table
-        const tableBody = document.querySelector('#prediction-table tbody');
-        tableBody.innerHTML = '<tr class="loading-row"><td colspan="4"><i class="fas fa-spinner fa-spin"></i> Loading prediction data...</td></tr>';
-        
-        // Check cache first
-        if (cachedData.prediction[assetId] && cachedData.prediction[assetId].timestamp > Date.now() - 60000) {
-            updatePredictionTable(cachedData.prediction[assetId].data);
-            isLoading.prediction = false;
-            return;
-        }
-        
-        fetch(`/api/history/predictions/${assetId}?limit=50`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                isLoading.prediction = false;
-                debugFetchResponse('prediction API', data);
-                
-                // Cache the data
-                cachedData.prediction[assetId] = {
-                    data: data,
-                    timestamp: Date.now()
-                };
-                
-                updatePredictionTable(data);
-            })
-            .catch(error => {
-                isLoading.prediction = false;
-                console.error('Error loading prediction data:', error);
-                
-                // Show error in table
-                tableBody.innerHTML = '';
-                const errorRow = document.createElement('tr');
-                errorRow.innerHTML = `<td colspan="4" class="empty-component">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <p>Error loading prediction data: ${error.message}</p>
-                    <button class="refresh-btn" onclick="loadPredictionData('${assetId}')">
-                        <i class="fas fa-sync-alt"></i> Try Again
-                    </button>
-                </td>`;
-                tableBody.appendChild(errorRow);
-            });
-    }
-    
-    function updatePredictionTable(data) {
-        const tableBody = document.querySelector('#prediction-table tbody');
-        tableBody.innerHTML = '';
-        
-        if (!data || data.length === 0) {
-            const emptyRow = document.createElement('tr');
-            emptyRow.innerHTML = `<td colspan="4" class="empty-component">
-                <i class="fas fa-info-circle"></i>
-                <p>No prediction data available for this asset.</p>
-            </td>`;
-            tableBody.appendChild(emptyRow);
-            return;
-        }
-        
-        // Sort data by timestamp (newest first)
-        data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-        // Add rows to the table
-        data.forEach(prediction => {
-            const row = document.createElement('tr');
+            isLoading.prediction = true;
             
-            // Format timestamp
-            const timestamp = new Date(prediction.timestamp).toLocaleString();
-            
-            // Format probability
-            const probability = parseFloat(prediction.failure_probability);
-            const formattedProbability = `${(probability * 100).toFixed(2)}%`;
-            
-            // Determine status class based on probability
-            let statusClass = 'normal';
-            let statusText = 'Normal';
-            
-            if (probability >= 0.7) {
-                statusClass = 'danger';
-                statusText = 'Critical';
-            } else if (probability >= 0.4) {
-                statusClass = 'warning';
-                statusText = 'Warning';
-            }
-            
-            // Asset names mapping
-            const assetNames = {
-                'A1': 'Air Temp & Humidity',
-                'A2': 'Water Temperature',
-                'A3': 'Ultrasonic Distance',
-                'A4': 'Water Flow'
-            };
-            
-            row.innerHTML = `
-                <td>${timestamp}</td>
-                <td>${assetNames[prediction.asset_id] || prediction.asset_id}</td>
-                <td>${formattedProbability}</td>
-                <td><span class="prediction-status ${statusClass}">${statusText}</span></td>
+            // Show loading state
+            const tableBody = document.querySelector('#prediction-table tbody');
+            tableBody.innerHTML = `
+                <tr class="loading-row">
+                    <td colspan="4"><i class="fas fa-spinner fa-spin"></i> Loading prediction data...</td>
+                </tr>
             `;
             
-            tableBody.appendChild(row);
-        });
-    }
-    function updatePredictionChart(data) {
-    // Get the canvas element
-    const canvas = document.getElementById('prediction-chart');
-    
-    // Destroy the existing chart if it exists
-    if (window.predictionChart) {
-        window.predictionChart.destroy();
-    }
-    
-    // Clear any existing chart instances
-    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-    
-    if (!data || data.length === 0) {
-        return;
-    }
-    
-    // Sort data by timestamp (oldest first for chart)
-    data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    
-    const timestamps = data.map(item => new Date(item.timestamp));
-    const probabilities = data.map(item => parseFloat(item.probability) * 100); // Convert to percentage
-    
-    // Create gradient for background
-    const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(230, 57, 70, 0.7)');  // Danger zone (top)
-    gradient.addColorStop(0.3, 'rgba(255, 159, 28, 0.7)'); // Warning zone
-    gradient.addColorStop(0.6, 'rgba(42, 157, 143, 0.7)'); // Safe zone (bottom)
-    
-    // Create new chart with enhanced styling
-    window.predictionChart = new Chart(canvas.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: timestamps,
-                datasets: [{
-                    label: `${currentAsset} Failure Probability (%)`,
-                    data: probabilities,
-                    borderColor: '#e63946',
-                    backgroundColor: 'rgba(230, 57, 70, 0.2)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: '#ffffff',
-                    pointHoverBackgroundColor: '#e63946'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            unit: 'minute',
-                            displayFormats: {
-                                minute: 'HH:mm',
-                                hour: 'MMM DD, HH:mm'
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        },
-                        ticks: {
-                            color: '#b8b8b8',
-                            maxRotation: 45,
-                            minRotation: 45
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        },
-                        ticks: {
-                            color: '#b8b8b8',
-                            callback: function(value) {
-                                return value + '%';
-                            }
-                        }
+            // Fetch prediction data from the database API
+            fetch(`/api/prediction-history/${assetId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
                     }
-                },
-                plugins: {
-                    annotation: {
-                        annotations: {
-                            warningLine: {
-                                type: 'line',
-                                yMin: 40,
-                                yMax: 40,
-                                borderColor: 'rgba(255, 159, 28, 0.7)',
-                                borderWidth: 2,
-                                borderDash: [5, 5],
-                                label: {
-                                    content: 'Warning Threshold',
-                                    enabled: true,
-                                    position: 'end',
-                                    backgroundColor: 'rgba(255, 159, 28, 0.7)'
-                                }
-                            },
-                            criticalLine: {
-                                type: 'line',
-                                yMin: 70,
-                                yMax: 70,
-                                borderColor: 'rgba(230, 57, 70, 0.7)',
-                                borderWidth: 2,
-                                borderDash: [5, 5],
-                                label: {
-                                    content: 'Critical Threshold',
-                                    enabled: true,
-                                    position: 'end',
-                                    backgroundColor: 'rgba(230, 57, 70, 0.7)'
-                                }
-                            }
-                        }
-                    },
-                    legend: {
-                        labels: {
-                            color: '#e6e6e6',
-                            font: {
-                                weight: 'bold'
-                            }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        titleColor: '#ffffff',
-                        bodyColor: '#ffffff',
-                        titleFont: {
-                            weight: 'bold',
-                            size: 14
-                        },
-                        bodyFont: {
-                            size: 13
-                        },
-                        padding: 12,
-                        displayColors: false,
-                        callbacks: {
-                            label: function(context) {
-                                return `Probability: ${context.raw.toFixed(2)}%`;
-                            }
-                        }
+                    return response.json();
+                })
+                .then(result => {
+                    isLoading.prediction = false;
+                    console.log('Prediction data result:', result);
+                    
+                    if (!result.success) {
+                        throw new Error(result.error || 'Unknown error');
                     }
-                },
-                interaction: {
-                    mode: 'index',
-                    intersect: false
-                },
-                elements: {
-                    line: {
-                        borderJoinStyle: 'round'
+                    
+                    const data = result.data;
+                    
+                    if (!data || data.length === 0) {
+                        // Show empty state
+                        tableBody.innerHTML = `
+                            <tr class="empty-row">
+                                <td colspan="4">
+                                    <div class="empty-component">
+                                        <i class="fas fa-info-circle"></i>
+                                        <p>No prediction data available for this asset.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+                    
+                    // Update the table with prediction data
+                    updatePredictionTable(data);
+                })
+                .catch(error => {
+                    isLoading.prediction = false;
+                    console.error('Error loading prediction data:', error);
+                    
+                    // Show error state
+                    tableBody.innerHTML = `
+                        <tr class="error-row">
+                            <td colspan="4">
+                                <div class="empty-component error">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <p>Error loading prediction data: ${error.message}</p>
+                                    <button class="refresh-btn" onclick="loadPredictionData('${assetId}')">
+                                        <i class="fas fa-sync-alt"></i> Try Again
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+        
+        function updatePredictionTable(data) {
+            const tableBody = document.querySelector('#prediction-table tbody');
+            tableBody.innerHTML = '';
+            
+            // Sort data by timestamp (newest first)
+            data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                
+                // Format timestamp
+                const timestamp = new Date(item.timestamp);
+                const formattedDate = timestamp.toLocaleDateString();
+                const formattedTime = timestamp.toLocaleTimeString();
+                
+                // Determine status class and text
+                const isPredicted = item.failure_predicted === 1;
+                const probability = parseFloat(item.failure_probability);
+                let statusClass = 'status-normal';
+                let statusText = 'Normal';
+                
+                if (isPredicted) {
+                    if (probability >= 0.7) {
+                        statusClass = 'status-critical';
+                        statusText = 'Critical';
+                    } else {
+                        statusClass = 'status-warning';
+                        statusText = 'Warning';
                     }
                 }
-            }
+                
+                row.innerHTML = `
+                    <td>${formattedDate} ${formattedTime}</td>
+                    <td>${getAssetName(item.asset_id)}</td>
+                    <td>${(probability * 100).toFixed(2)}%</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Update the DOMContentLoaded event handler
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up asset selector buttons
+            document.querySelectorAll('.asset-selector').forEach(selector => {
+                selector.querySelectorAll('.asset-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const asset = this.getAttribute('data-asset');
+                        
+                        // Update active button in the same selector
+                        selector.querySelectorAll('.asset-btn').forEach(btn => {
+                            btn.classList.remove('active');
+                        });
+                        this.classList.add('active');
+                        
+                        // Find which chart this selector controls
+                        const parent = selector.closest('.history-card');
+                        const title = parent.querySelector('.history-title').textContent;
+                        
+                        // Update appropriate data based on title
+                        if (title.includes('Sensor Data')) {
+                            loadSensorData(asset);
+                        } else if (title.includes('Prediction')) {
+                            loadPredictionData(asset);
+                        }
+                    });
+                });
+            });
+            
+            // Load initial data
+            loadFailureStats();
+            loadSensorData('A1-temp'); // Start with temperature by default
+            loadPredictionData('A1');
         });
-    }
 </script>

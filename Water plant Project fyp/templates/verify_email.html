@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Verify Email - Predictive Maintenance</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='auth-style.css') }}"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Inline flash message styles to ensure they're applied */
+      .flash-messages {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        max-width: 300px;
+        pointer-events: none;
+      }
+      
+      .flash-message {
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.3s ease-out;
+        font-weight: bold;
+      }
+      
+      .flash-message.error {
+        background-color: #f44336;
+        color: white;
+        border-left: 4px solid #b71c1c;
+      }
+      
+      .flash-message.success {
+        background-color: #4CAF50;
+        color: white;
+        border-left: 4px solid #1b5e20;
+      }
+      
+      .flash-message.info {
+        background-color: #2196F3;
+        color: white;
+        border-left: 4px solid #0d47a1;
+      }
+      
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      
+      .flash-message.fade-out {
+        opacity: 0;
+        transition: opacity 0.5s ease-out;
+      }
+      
+      /* OTP input styles */
+      .otp-input {
+        letter-spacing: 10px;
+        font-size: 1.5rem;
+        text-align: center;
+        font-weight: bold;
+      }
+      
+      .resend-link {
+        display: block;
+        text-align: center;
+        margin-top: 15px;
+        color: #2196F3;
+        text-decoration: none;
+      }
+      
+      .resend-link:hover {
+        text-decoration: underline;
+      }
+      
+      .email-info {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Flash messages section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash-message {{ category }}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    
+    <div class="page-split">
+      <div class="diagonal-box"></div>
+      <div class="title-section">
+        <h1 class="title-text">Predictive Maintenance System</h1>
+      </div>
+
+      <div class="auth-section">
+        <div class="auth-container">
+          <h2>Verify Your Email</h2>
+          <p class="email-info">We've sent a verification code to <strong>{{ email }}</strong></p>
+          
+          <form action="{{ url_for('auth.verify_email', email=email) }}" method="POST">
+            <label for="otp">Enter Verification Code</label>
+            <input type="text" id="otp" name="otp" class="otp-input" required maxlength="6" pattern="[0-9]{6}" title="Please enter the 6-digit code" />
+            
+            <button type="submit">Verify Email</button>
+            
+            <a href="{{ url_for('auth.resend_otp', email=email) }}" class="resend-link">Didn't receive the code? Resend</a>
+            
+            <p>
+              <a href="{{ url_for('auth.login') }}">Back to Login</a>
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const flashMessages = document.querySelectorAll(".flash-message");
+        
+        flashMessages.forEach(function (message) {
+          // Start fade out after 3 seconds
+          setTimeout(() => {
+            message.classList.add("fade-out");
+          }, 3000);
+
+          // Remove element after fade out animation (after 3.5 seconds)
+          setTimeout(() => {
+            message.remove();
+          }, 3500);
+        });
+        
+        // Auto-focus the OTP input
+        const otpInput = document.getElementById('otp');
+        if (otpInput) {
+          otpInput.focus();
+        }
+      });
+    </script>
+  </body>
+</html>
